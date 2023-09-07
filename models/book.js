@@ -1,20 +1,4 @@
 const db = require("../db");
-const Ajv = require('ajv');
-const ajv = new Ajv();
-
-const bookSchema = {
-  type: 'object',
-  properties: {
-    amazon_url: { type: 'string' },
-    author: { type: 'string' },
-    language: { type: 'string' },
-    pages: { type: 'integer' },
-    publisher: { type: 'string' },
-    title: { type: 'string' },
-    year: { type: 'integer' },
-  },
-  additionalProperties: false, // Disallow additional properties
-};
 
 /** Collection of related methods for books. */
 
@@ -119,76 +103,41 @@ class Book {
    *
    * */
 
-  // static async update(isbn, data) {
-  //   const result = await db.query(
-  //     `UPDATE books SET 
-  //           amazon_url=($1),
-  //           author=($2),
-  //           language=($3),
-  //           pages=($4),
-  //           publisher=($5),
-  //           title=($6),
-  //           year=($7)
-  //           WHERE isbn=$8
-  //       RETURNING isbn,
-  //                 amazon_url,
-  //                 author,
-  //                 language,
-  //                 pages,
-  //                 publisher,
-  //                 title,
-  //                 year`,
-  //     [
-  //       data.amazon_url,
-  //       data.author,
-  //       data.language,
-  //       data.pages,
-  //       data.publisher,
-  //       data.title,
-  //       data.year,
-  //       isbn
-  //     ]
-  //   );
-
-  //   if (result.rows.length === 0) {
-  //     throw { message: `There is no book with an isbn '${isbn}`, status: 404 }
-  //   }
-
-  //   return result.rows[0];
-  // }
-
   static async update(isbn, data) {
-    const isValid = ajv.validate(bookSchema, data);
+    const result = await db.query(
+      `UPDATE books SET 
+            amazon_url=($1),
+            author=($2),
+            language=($3),
+            pages=($4),
+            publisher=($5),
+            title=($6),
+            year=($7)
+            WHERE isbn=$8
+        RETURNING isbn,
+                  amazon_url,
+                  author,
+                  language,
+                  pages,
+                  publisher,
+                  title,
+                  year`,
+      [
+        data.amazon_url,
+        data.author,
+        data.language,
+        data.pages,
+        data.publisher,
+        data.title,
+        data.year,
+        isbn
+      ]
+    );
 
-    if (!isValid) {
-      throw { message: 'Data does not match the schema', status: 400 };
-    }
-    
-    const setColumns = [];
-    const values = [];
-  
-    for (const key in data) {
-      if (data[key] !== null && data[key] !== undefined) {
-        setColumns.push(`${key} = $${setColumns.length + 1}`);
-        values.push(data[key]);
-      }
-    }
-    const setClause = setColumns.join(', ');
-
-    values.push(isbn);
-
-    const query = `
-      UPDATE books
-      SET ${setClause}
-      WHERE isbn = $${values.length}
-      RETURNING isbn, amazon_url, author, language, pages, publisher, title, year`;
-  
-    const result = await db.query(query, values);
-  
     if (result.rows.length === 0) {
-      throw { message: `There is no book with an isbn '${isbn}'`, status: 404 };
+      throw { message: `There is no book with an isbn '${isbn}`, status: 404 }
     }
-  
+
     return result.rows[0];
   }
   
